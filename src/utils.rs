@@ -21,6 +21,8 @@ pub mod math {
 }
 
 pub mod conv {
+    use crate::utils::math::ones_complement;
+
     pub fn convert_u16_to_bytes(u: u16) -> Vec<u8> {
         let bin = format!("{:016b}", u);
 
@@ -91,5 +93,24 @@ pub mod conv {
 
     pub fn convert_bytes_to_ipv4_addr(v: Vec<u8>) -> String {
         format!("{}.{}.{}.{}", v[0], v[1], v[2], v[3])
+    } 
+
+    pub fn convert_ipv4_addr_to_u32(ip: String) -> u32 {
+        let bins = ip.split(".")
+                    .map(|x| format!("{:08b}", x.parse::<u8>().unwrap()))
+                    .collect::<Vec<String>>()
+                    .join("");
+
+        let ret = u32::from_str_radix(bins.as_str(), 2).unwrap();
+
+        ret
+    }
+
+    pub fn convert_bytes_to_checksum(b: Vec<u8>) -> u16 {
+        let sum: u8 = b.iter().sum();
+
+        let complement = ones_complement(sum as u16);
+
+        complement
     }
 }
