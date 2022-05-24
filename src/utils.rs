@@ -114,3 +114,15 @@ pub mod conv {
         complement
     }
 }
+
+pub mod helpers {
+    use rand::Rng;
+
+    pub fn random_u16() -> u16 {
+        let mut rng = rand::thread_rng();
+
+        let ret: u16 = rng.gen();
+
+        ret
+    }
+}

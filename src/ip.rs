@@ -1,6 +1,8 @@
 use crate::utils::conv::*;
+use crate::utils::helpers::random_u16;
 
 #[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum DSCP {
     Default = 0,
     CS1 = 8,
@@ -60,6 +62,7 @@ impl Into<u8> for DSCP {
     }
 }
 
+#[derive(Clone)]
 pub struct IpV4Addr {
     raw: u32,
     fixed: String,
@@ -111,12 +114,17 @@ impl Into<String> for IpV4Addr {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Flag {
     more_fragment: bool,
     fragment_offset: u8,
 }
 
 impl Flag {
+    pub fn new(more_fragment: bool, fragment_offset: u8) -> Self {
+        Flag { more_fragment, fragment_offset }
+    }
+
     pub fn from(v: Vec<u8>) -> Self {
         let flag_bit = v[0];
         let fragment_offset = v[1];
@@ -155,6 +163,7 @@ impl Into<Vec<u8>> for Flag {
     }
 }
 
+#[derive(Clone)]
 pub struct IpV4 {
     version: u8,
     dscp: DSCP,
@@ -228,16 +237,92 @@ impl IpV4 {
             destination_addr,
         }
     }
+
+    pub fn from_addr_udp(source: String, destination: String, packet_length: u16) -> Self {
+        let version = 0x45 as u8;        
+        let dscp = DSCP::Default;
+        let length = packet_length + 20;
+        let identification = random_u16();
+        let flag = Flag::new(false, 0);
+        let ttl = 64 as u8;
+        let protocol_code = 0x11 as u8;  
+        let source_addr: IpV4Addr = source.into();
+        let destination_addr: IpV4Addr = destination.into();
+
+
+        let checksum = {
+            let mut v = Vec::<u8>::new();
+
+            let dscp_num: u8 = dscp.into();
+            let length_vec = convert_u16_to_bytes(length.clone());
+            let id_vec = convert_u16_to_bytes(identification.clone());
+            let flag_vec: Vec<u8> = flag.into();
+            let source_addr_vec: Vec<u8> = source_addr.clone().into();
+            let dest_addr_vec: Vec<u8> = destination_addr.clone().into();
+
+            v.push(version);
+            v.push(dscp_num);
+            v.extend(length_vec);
+            v.extend(id_vec);
+            v.extend(flag_vec);
+            v.push(ttl);
+            v.push(protocol_code);
+            v.extend(source_addr_vec);
+            v.extend(dest_addr_vec);
+
+            convert_bytes_to_checksum(v)
+
+        };
+        
+        IpV4 { version, dscp, length, identification, flag, ttl, protocol_code, checksum, source_addr, destination_addr }
+
+    }
+
+    pub fn into_bytes(&self) -> Vec<u8> {
+        let bytes = {
+            let mut v = Vec::<u8>::new();
+
+            let dscp_num: u8 = self.dscp.into();
+            let length_vec = convert_u16_to_bytes(self.length);
+            let id_vec = convert_u16_to_bytes(self.identification);
+            let flag_vec: Vec<u8> = self.flag.into();
+            let checksum_vec = convert_u16_to_bytes(self.checksum);
+            let source_addr_vec: Vec<u8> = self.source_addr.clone().into();
+            let dest_addr_vec: Vec<u8> = self.destination_addr.clone().into();
+
+            v.push(self.version);
+            v.push(dscp_num);
+            v.extend(length_vec);
+            v.extend(id_vec);
+            v.extend(flag_vec);
+            v.push(self.ttl);
+            v.push(self.protocol_code);
+            v.extend(checksum_vec);
+            v.extend(source_addr_vec);
+            v.extend(dest_addr_vec);
+
+            v
+        };
+
+        bytes
+    }
 }
 
 impl From<Vec<u8>> for IpV4 {
-    fn from(_: Vec<u8>) -> Self {
-        todo!()
+    fn from(v: Vec<u8>) -> Self {
+        Self::from(v)
     }
 }
 
 impl Into<Vec<u8>> for IpV4 {
     fn into(self) -> Vec<u8> {
-        todo!()
+        self.into_bytes()
+    }
+}
+
+
+impl From<(String, String, u16)> for IpV4 {
+    fn from(item: (String, String, u16)) -> Self {
+        Self::from_addr_udp(item.0, item.1, item.2)
     }
 }
