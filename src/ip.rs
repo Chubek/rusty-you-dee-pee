@@ -321,8 +321,8 @@ impl Into<Vec<u8>> for IpV4 {
 }
 
 
-impl From<(String, String, u16)> for IpV4 {
-    fn from(item: (String, String, u16)) -> Self {
-        Self::from_addr_udp(item.0, item.1, item.2)
+impl From<(String, String, usize)> for IpV4 {
+    fn from(item: (String, String, usize)) -> Self {
+        Self::from_addr_udp(item.0, item.1, item.2 as u16)
     }
 }
